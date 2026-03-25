@@ -33,33 +33,39 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
-  const chartHeight = 64
-  const chartWidth = 600
-  const paddingY = 8
+  const CHART_H = 110
+  const SVG_W = 700
+  const Y_PAD = 40  // left space for y-axis labels
+  const PAD_TOP = 14
+  const PAD_BOT = 6
+  const CHART_W = SVG_W - Y_PAD
+  const X_AXIS_H = 16
+  const TOTAL_H = CHART_H + X_AXIS_H
 
   const durations = results.map(r => r.duration / 1_000_000)
   const timestamps = results.map(r => +new Date(r.timestamp))
-  const minVal = Math.min(...durations)
   const maxVal = Math.max(...durations)
-  const range = maxVal - minVal || 1
   const n = durations.length
 
-  const getX = (i: number) => (i / Math.max(n - 1, 1)) * chartWidth
-  const getY = (d: number) => paddingY + ((maxVal - d) / range) * (chartHeight - paddingY * 2)
+  // Nice Y-axis max (round up to nearest 50)
+  const niceMax = Math.max(Math.ceil(maxVal / 50) * 50, 50)
+  const tickStep = niceMax <= 100 ? 25 : niceMax <= 300 ? 50 : 100
+  const yTicks = Array.from({ length: Math.floor(niceMax / tickStep) + 1 }, (_, i) => i * tickStep)
 
-  const baselineY = getY(minVal)
-  const lastDuration = durations[n - 1]
-  const lastY = getY(lastDuration)
+  const getX = (i: number) => Y_PAD + (i / Math.max(n - 1, 1)) * CHART_W
+  const getY = (d: number) => PAD_TOP + ((niceMax - d) / niceMax) * (CHART_H - PAD_TOP - PAD_BOT)
+
   const polylinePoints = durations.map((d, i) => `${getX(i)},${getY(d)}`).join(' ')
+  const areaPoints = `${getX(0)},${CHART_H} ${polylinePoints} ${getX(n - 1)},${CHART_H}`
 
-  // X-axis labels: 7 evenly-spaced time labels
   const LABEL_COUNT = 6
   const minTime = timestamps[0]
   const maxTime = timestamps[n - 1]
   const timeRange = maxTime - minTime || 1
-  const axisLabels = Array.from({ length: LABEL_COUNT + 1 }, (_, i) => ({
+  const xLabels = Array.from({ length: LABEL_COUNT + 1 }, (_, i) => ({
     label: formatAxisTime(minTime + (i / LABEL_COUNT) * timeRange),
-    align: i === 0 ? 'left' : i === LABEL_COUNT ? 'right' : 'center',
+    x: getX(Math.round((i / LABEL_COUNT) * (n - 1))),
+    anchor: i === 0 ? 'start' : i === LABEL_COUNT ? 'end' : 'middle',
   }))
 
   const hi = hoveredIndex
@@ -67,19 +73,17 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
   const hoveredTimestamp = hi !== null ? timestamps[hi] : null
   const hoveredX = hi !== null ? getX(hi) : null
   const hoveredY = hi !== null ? getY(durations[hi]) : null
-  const hoveredSuccess = hi !== null ? results[hi].success : true
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = containerRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
-    const relX = (e.clientX - rect.left) / rect.width
-    const idx = Math.round(relX * (n - 1))
-    setHoveredIndex(Math.max(0, Math.min(idx, n - 1)))
+    const chartLeft = (Y_PAD / SVG_W) * rect.width
+    const chartRight = rect.width
+    const relX = (e.clientX - rect.left - chartLeft) / (chartRight - chartLeft)
+    const idx = Math.round(Math.max(0, Math.min(relX, 1)) * (n - 1))
+    setHoveredIndex(idx)
   }
-
-  // Clamp hover tooltip position so it stays within container
-  const hoverLeftPercent = hi !== null ? (hi / Math.max(n - 1, 1)) * 100 : null
 
   return (
     <div
@@ -88,103 +92,115 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoveredIndex(null)}
     >
-      {/* SVG wrapper — explicit height + overflow-hidden prevents ~Xms from leaking into X-axis */}
-      <div className='relative overflow-hidden' style={{ height: `${chartHeight}px` }}>
-        {/* Hover info overlay — follows mouse horizontally */}
-        {hoveredDuration !== null && hoveredTimestamp !== null && hoverLeftPercent !== null && (
-          <div
-            className='absolute top-0 bottom-0 flex items-center pointer-events-none z-10'
-            style={{
-              left: `clamp(3rem, ${hoverLeftPercent}%, calc(100% - 7rem))`,
-              transform: 'translateX(-50%)',
-            }}
-          >
-            <div className='flex items-baseline gap-1'>
-              <span className='text-3xl font-bold tabular-nums leading-none'>{lazyFloat(hoveredDuration)}</span>
-              <span className='text-base text-fg/50'>ms</span>
-              <span className='text-sm text-fg/40 ml-1 whitespace-nowrap'>{formatHoverTime(hoveredTimestamp)}</span>
-            </div>
-          </div>
+      <svg
+        viewBox={`0 0 ${SVG_W} ${TOTAL_H}`}
+        className='w-full block'
+        style={{ height: `${TOTAL_H}px` }}
+      >
+        {/* Y-axis label */}
+        <text
+          x={0} y={CHART_H / 2}
+          textAnchor='middle'
+          fontSize='9'
+          fill='currentColor'
+          className='text-fg/40'
+          transform={`rotate(-90, 8, ${CHART_H / 2})`}
+        >
+          Response times(ms)
+        </text>
+
+        {/* Y-axis gridlines + tick labels */}
+        {yTicks.map((tick, i) => {
+          const y = getY(tick)
+          return (
+            <g key={i}>
+              <line
+                x1={Y_PAD} y1={y} x2={SVG_W} y2={y}
+                stroke='currentColor' strokeWidth='0.5'
+                className='text-fg/15'
+              />
+              <text
+                x={Y_PAD - 4} y={y + 3}
+                textAnchor='end'
+                fontSize='9'
+                fill='currentColor'
+                className='text-fg/40'
+              >
+                {Math.round(tick)}
+              </text>
+            </g>
+          )
+        })}
+
+        {/* Area fill */}
+        <polygon
+          points={areaPoints}
+          fill='currentColor'
+          className='text-slate-400/15'
+        />
+
+        {/* Line */}
+        <polyline
+          points={polylinePoints}
+          fill='none'
+          stroke='currentColor'
+          strokeWidth='1.5'
+          className='text-slate-500'
+          vectorEffect='non-scaling-stroke'
+        />
+
+        {/* Hover crosshair + dot */}
+        {hoveredX !== null && hoveredY !== null && (
+          <>
+            <line
+              x1={hoveredX} y1={PAD_TOP} x2={hoveredX} y2={CHART_H - PAD_BOT}
+              stroke='currentColor' strokeWidth='1' strokeDasharray='3 3'
+              className='text-fg/30' vectorEffect='non-scaling-stroke'
+            />
+            <circle
+              cx={hoveredX} cy={hoveredY} r='3'
+              fill='currentColor' className='text-slate-600'
+              vectorEffect='non-scaling-stroke'
+            />
+            <text
+              x={Math.max(Y_PAD + 20, Math.min(SVG_W - 30, hoveredX))}
+              y={PAD_TOP - 2}
+              textAnchor='middle'
+              fontSize='10'
+              fill='currentColor'
+              className='text-fg/60'
+            >
+              {hoveredDuration !== null ? `${lazyFloat(hoveredDuration)}ms` : ''}
+              {hoveredTimestamp !== null ? `  ${formatHoverTime(hoveredTimestamp)}` : ''}
+            </text>
+          </>
         )}
 
-        {/* SVG line chart */}
-        <svg
-          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          preserveAspectRatio='none'
-          className='w-full block'
-          style={{ height: `${chartHeight}px` }}
-        >
-          {/* Baseline dashed */}
-          <line
-            x1={0} y1={baselineY} x2={chartWidth} y2={baselineY}
-            stroke='currentColor' strokeWidth='1' strokeDasharray='4 4'
-            className='text-fg/20'
-          />
-          {/* Response time polyline */}
-          <polyline
-            points={polylinePoints}
-            fill='none' stroke='currentColor' strokeWidth='1.5'
-            className='text-sky-500' vectorEffect='non-scaling-stroke'
-          />
-          {/* Data point dots */}
-          {durations.map((d, i) => (
-            <circle
-              key={i} cx={getX(i)} cy={getY(d)} r='2' fill='currentColor'
-              className={results[i].success ? 'text-emerald-500' : 'text-red-500'}
-            />
-          ))}
-          {/* Hover crosshair */}
-          {hoveredX !== null && hoveredY !== null && (
-            <>
-              <line
-                x1={hoveredX} y1={0} x2={hoveredX} y2={chartHeight}
-                stroke='currentColor' strokeWidth='1' strokeDasharray='3 3'
-                className='text-fg/40' vectorEffect='non-scaling-stroke'
-              />
-              <circle
-                cx={hoveredX} cy={hoveredY} r='4' fill='currentColor'
-                className={hoveredSuccess ? 'text-emerald-500' : 'text-red-500'}
-                vectorEffect='non-scaling-stroke'
-              />
-            </>
-          )}
-        </svg>
-
-      </div>
-
-      {/* X-axis time labels + ~Xms at the right end */}
-      <div className='flex justify-between items-center mt-0.5'>
-        {axisLabels.map((item, i) => (
-          <span
+        {/* X-axis labels */}
+        {xLabels.map((item, i) => (
+          <text
             key={i}
-            className={clsx(
-              'text-xs text-fg/40',
-              item.align === 'left' ? 'text-left' : item.align === 'right' ? 'text-right' : 'text-center'
-            )}
+            x={item.x}
+            y={CHART_H + X_AXIS_H - 2}
+            textAnchor={item.anchor as 'start' | 'middle' | 'end'}
+            fontSize='9'
+            fill='currentColor'
+            className='text-fg/40'
           >
             {item.label}
-          </span>
+          </text>
         ))}
-        <span className='text-xs text-sky-600 font-mono whitespace-nowrap'>
-          ~{lazyFloat(lastDuration)}ms
-        </span>
-      </div>
+      </svg>
     </div>
   )
 }
 
-export const StatusItem = memo(function StatusItem({
-  data,
-  showResponseTime,
-}: {
-  data: Status
-  showResponseTime?: boolean
-}) {
+export const StatusItem = memo(function StatusItem({ data }: { data: Status }) {
   const firstResult = data.results[0]
   const lastResult = data.results[data.results.length - 1]
 
   return (
-    <div className='mx-4 grid gap-1'>
+    <div className='px-4 py-4 grid gap-1.5'>
       {/* Title */}
       <div className='flex items-center justify-between'>
         <h3 className='flex items-center gap-1 text-base font-semibold'>
@@ -267,10 +283,16 @@ export const StatusItem = memo(function StatusItem({
       </div>
 
       {/* Response Time Chart */}
-      {showResponseTime && <ResponseTimeChart results={data.results} />}
+      {(() => {
+        const val = process.env.NEXT_PUBLIC_SHOW_RESPONSE_TIME ?? ''
+        const show =
+          val === 'true' ||
+          val.split(',').map(s => s.trim()).includes(data.key)
+        return show ? <ResponseTimeChart results={data.results} /> : null
+      })()}
 
       {/* Timestamps */}
-      <div className='text-fg/80 flex items-center justify-between text-sm'>
+      <div className='text-ac/70 flex items-center justify-between text-xs uppercase tracking-wide'>
         <div>{timeFromNow(+new Date(firstResult.timestamp))}</div>
         <div>{timeFromNow(+new Date(lastResult.timestamp))}</div>
       </div>

@@ -1,8 +1,8 @@
 'use client'
 
-import { IconChartLine, IconMenuOrder, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
+import { IconAlertCircleFilled, IconCircleCheckFilled, IconCircleXFilled, IconRefresh } from '@tabler/icons-react'
 import clsx from 'clsx'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 import type { Status, UptimeState } from '@/types'
 
@@ -12,10 +12,7 @@ import useStatuses from '@/hooks/useStatuses'
 import { useViewportSize } from '@/hooks/useViewportSize'
 
 import { StatusItem } from '@/components/status-item'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Toggle } from '@/components/ui/toggle'
 
 interface GroupedData {
   [key: string]: {
@@ -49,10 +46,6 @@ export function StatusList() {
   const resolvedWidth = width > 0 ? (width < 640 ? 30 : width < 1024 ? 60 : 90) : undefined
 
   const { data, isLoading, isValidating, mutate } = useStatuses(resolvedWidth)
-  const [filterText, setFilterText] = useState<string>('')
-  const [manuallyExpandedItems, setManuallyExpandedItems] = useState<string[]>([])
-  const [isExpandAll, setIsExpandAll] = useState(true)
-  const [showResponseTime, setShowResponseTime] = useState(false)
 
   // Compute derived state using useMemo
   const resolvedData = useMemo(() => {
@@ -85,198 +78,74 @@ export function StatusList() {
       }, 0)
     : undefined
 
-  // Auto-expand accordions when filtering - use derived state, not effect
-  const expandedItems = useMemo(() => {
-    // When filtering, auto-expand matching groups
-    if (filterText && resolvedData) {
-      return Object.entries(resolvedData)
-        .filter(([group, statuses]) => {
-          const searchText = filterText.toLowerCase()
-          // Include if group name matches or any node name matches
-          if (group.toLowerCase().includes(searchText)) return true
-          return statuses.data.some(status => status.name.toLowerCase().includes(searchText))
-        })
-        .map(([group]) => group)
-    }
-    // When expand all is toggled, expand all groups
-    if (isExpandAll && resolvedData) {
-      return Object.keys(resolvedData)
-    }
-    // When not filtering, use manually controlled state
-    return manuallyExpandedItems
-  }, [filterText, resolvedData, manuallyExpandedItems, isExpandAll])
-
   return (
     <>
       {globalStatus && latestTimestamp ? (
-        <div className='my-10 grid items-center justify-items-center gap-1 text-center'>
+        <div className='mb-4 flex items-center gap-3 rounded-lg border border-fg/10 px-4 py-3'>
           {globalStatus.percent === 100 ? (
             <>
-              <div className='indicator up m-2 size-8 text-emerald-600' />
-              <h1 className='text-2xl font-bold'>All services are online</h1>
+              <IconCircleCheckFilled className='size-5 shrink-0 text-emerald-500' />
+              <span className='font-medium'>All systems operational</span>
             </>
           ) : globalStatus.percent === 0 ? (
             <>
-              <div className='indicator down m-2 size-8 text-red-600' />
-              <h1 className='text-2xl font-bold'>All services are offline</h1>
+              <IconCircleXFilled className='size-5 shrink-0 text-red-500' />
+              <span className='font-medium'>All services are offline</span>
             </>
           ) : (
             <>
-              <div className='indicator partial m-2 size-8 text-amber-600' />
-              <h1 className='text-2xl font-bold'>Some services are offline</h1>
+              <IconAlertCircleFilled className='size-5 shrink-0 text-amber-500' />
+              <span className='font-medium'>Some services are offline</span>
             </>
           )}
-          <div className='flex items-center gap-1'>
-            Updated {timeFromNow(latestTimestamp)}
-            <button
-              type='button'
-              onClick={() => mutate()}
-              aria-label='Refresh'
-              disabled={isLoading || isValidating}
-              className='focus-ring rounded-full'
-            >
-              <IconRefresh className={clsx('size-5', (isLoading || isValidating) && 'animate-spin')} />
-            </button>
-          </div>
+          <button
+            type='button'
+            onClick={() => mutate()}
+            aria-label='Refresh'
+            disabled={isLoading || isValidating}
+            className='focus-ring ml-auto rounded-full text-fg/40 hover:text-fg/70 transition-colors'
+          >
+            <IconRefresh className={clsx('size-4', (isLoading || isValidating) && 'animate-spin')} />
+          </button>
         </div>
       ) : (
-        <div>
-          {/* Title */}
-          <div className='my-10 grid items-center justify-items-center gap-1 text-center'>
-            <Skeleton className='m-1 size-10 rounded-full' />
-            <Skeleton className='h-8 w-[258px] rounded-md' />
-            <div className='flex items-center gap-1'>
-              <Skeleton className='h-6 w-50 rounded-md' />
-              <Skeleton className='size-5 rounded-full' />
-            </div>
-          </div>
-
-          {/* Input */}
-          <div className='mb-4 flex gap-2 justify-center'>
-            <Skeleton className='h-8 max-w-70 rounded-md' />
-            <Skeleton className='size-8 rounded-md' />
-          </div>
-        </div>
+        <Skeleton className='mb-4 h-[52px] w-full rounded-lg' />
       )}
 
-      {resolvedData && (
-        <div className='mb-4 flex gap-2 justify-center'>
-          <InputGroup className='flex-1 max-w-70'>
-            <InputGroupAddon>
-              <IconSearch />
-            </InputGroupAddon>
-            <InputGroupInput
-              type='text'
-              placeholder='Filter by group or node name…'
-              value={filterText}
-              onChange={e => setFilterText(e.target.value)}
-            />
-            {filterText && (
-              <InputGroupAddon align='inline-end'>
-                <InputGroupButton size='icon-xs' onClick={() => setFilterText('')}>
-                  <IconX />
-                </InputGroupButton>
-              </InputGroupAddon>
-            )}
-          </InputGroup>
-          <Toggle
-            pressed={isExpandAll}
-            onPressedChange={setIsExpandAll}
-            disabled={!!filterText}
-            aria-label={isExpandAll ? 'Collapse all' : 'Expand all'}
-            size='icon'
-            variant='outline'
-          >
-            <IconMenuOrder />
-          </Toggle>
-          <Toggle
-            pressed={showResponseTime}
-            onPressedChange={setShowResponseTime}
-            aria-label={showResponseTime ? 'Hide response time' : 'Show response time'}
-            size='icon'
-            variant='outline'
-          >
-            <IconChartLine />
-          </Toggle>
-        </div>
-      )}
 
       {resolvedData ? (
-        <Accordion
-          type='multiple'
-          className='grid gap-2'
-          value={expandedItems}
-          onValueChange={
-            filterText
-              ? undefined
-              : value => {
-                  setManuallyExpandedItems(value)
-                  // Update expand all state based on manual changes
-                  const allGroups = Object.keys(resolvedData)
-                  setIsExpandAll(value.length === allGroups.length && allGroups.length > 0)
-                }
-          }
-        >
-          {Object.entries(resolvedData)
-            .filter(([group, statuses]) => {
-              if (!filterText) return true
-              const searchText = filterText.toLowerCase()
-              // Filter by group name
-              if (group.toLowerCase().includes(searchText)) return true
-              // Filter by any node name in the group
-              return statuses.data.some(status => status.name.toLowerCase().includes(searchText))
-            })
-            .map(([group, statuses]) => {
-              // Filter nodes within the group
-              const filteredStatuses = filterText
-                ? statuses.data.filter(status => status.name.toLowerCase().includes(filterText.toLowerCase()))
-                : statuses.data
-
-              // If group name matches but no nodes match, show all nodes in that group
-              const displayStatuses =
-                filteredStatuses.length > 0 || group.toLowerCase().includes(filterText.toLowerCase())
-                  ? filteredStatuses.length > 0
-                    ? filteredStatuses
-                    : statuses.data
-                  : []
-
-              return (
-                <AccordionItem value={group} key={group}>
-                  <AccordionTrigger asChild>
-                    <h2 className='cursor-pointer text-lg font-medium'>
-                      <div className='line-clamp-1 text-left'>{group}</div>
-                      <div className='text-xs uppercase'>
-                        {statuses.groupStatus.percent === 100 ? (
-                          <div className='flex items-center gap-1'>
-                            <div className='indicator up size-2.5 text-emerald-600' />
-                            <span className='text-emerald-700'>Operational</span>
-                          </div>
-                        ) : statuses.groupStatus.percent === 0 ? (
-                          <div className='flex items-center gap-1'>
-                            <div className='indicator down size-2.5 text-red-600' />
-                            <span className='text-red-700'>Offline</span>
-                          </div>
-                        ) : (
-                          <div className='flex items-center gap-1'>
-                            <div className='indicator partial size-2.5 text-amber-600' />
-                            <span className='text-amber-700'>
-                              Partial - {statuses.groupStatus.up}/{statuses.data.length}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </h2>
-                  </AccordionTrigger>
-
-                  <AccordionContent className='grid gap-4'>
-                    {displayStatuses.map(status => (
-                      <StatusItem data={status} key={status.key} showResponseTime={showResponseTime} />
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-              )
-            })}
-        </Accordion>
+        <div className='grid gap-2'>
+          {Object.entries(resolvedData).map(([group, statuses]) => (
+            <div key={group} className='overflow-hidden rounded-lg border border-fg/10'>
+              <div className='px-4 pt-3 pb-1 flex items-center justify-between'>
+                <span className='text-xs font-semibold text-fg/50 uppercase tracking-wide'>{group}</span>
+                <span className='text-xs font-semibold uppercase tracking-wide'>
+                  {statuses.groupStatus.percent === 100 ? (
+                    <span className='flex items-center gap-1.5 text-emerald-600'>
+                      <span className='size-2 rounded-full bg-emerald-500' />
+                      Operational
+                    </span>
+                  ) : statuses.groupStatus.percent === 0 ? (
+                    <span className='flex items-center gap-1.5 text-red-600'>
+                      <span className='size-2 rounded-full bg-red-500' />
+                      Offline
+                    </span>
+                  ) : (
+                    <span className='flex items-center gap-1.5 text-amber-600'>
+                      <span className='size-2 rounded-full bg-amber-500' />
+                      Partial — {statuses.groupStatus.up}/{statuses.data.length}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className='divide-y divide-fg/5'>
+                {statuses.data.map(status => (
+                  <StatusItem data={status} key={status.key} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className='grid gap-2'>
           {[

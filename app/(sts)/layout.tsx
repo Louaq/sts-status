@@ -1,0 +1,34 @@
+import type { Metadata } from 'next'
+import { ThemeProvider } from 'next-themes'
+
+import { TooltipProvider } from '@/components/ui/tooltip'
+
+import './globals.css'
+
+export const metadata: Metadata = {
+  title: process.env.NEXT_PUBLIC_SITE_TITLE || 'Gatus Frontend',
+  description: process.env.NEXT_PUBLIC_SITE_DESC || 'A fully open-source status page with Gatus and Payload',
+  icons: process.env.NEXT_PUBLIC_SITE_LOGO || '',
+  alternates: {
+    types: {
+      'application/atom+xml': '/history.atom',
+    },
+  },
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    // https://github.com/pacocoursey/next-themes#with-app
+    <html lang='en' suppressHydrationWarning>
+      <body>
+        <ThemeProvider attribute='data-theme'>
+          <TooltipProvider delay={200}>{children}</TooltipProvider>
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}

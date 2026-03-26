@@ -2,8 +2,8 @@ import { ThemeSwitch } from '@/components/theme-switch'
 
 export function Footer() {
   return (
-    <footer className='text-fg/60 flex items-center justify-between py-8 text-sm'>
-      <div>
+    <footer className='text-fg flex items-center justify-between py-8 text-sm'>
+      <div className='font-semibold'>
         {process.env.NEXT_PUBLIC_FOOTER_TEXT || (
           <>
             Powered by{' '}

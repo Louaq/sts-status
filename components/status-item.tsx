@@ -162,17 +162,6 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
               fill='currentColor' className='text-slate-600'
               vectorEffect='non-scaling-stroke'
             />
-            <text
-              x={Math.max(Y_PAD + 20, Math.min(SVG_W - 30, hoveredX))}
-              y={PAD_TOP - 2}
-              textAnchor='middle'
-              fontSize='10'
-              fill='currentColor'
-              className='text-fg/60'
-            >
-              {hoveredDuration !== null ? `${lazyFloat(hoveredDuration)}ms` : ''}
-              {hoveredTimestamp !== null ? `  ${formatHoverTime(hoveredTimestamp)}` : ''}
-            </text>
           </>
         )}
 
@@ -191,6 +180,22 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
           </text>
         ))}
       </svg>
+
+      {/* HTML hover overlay — large ms display like image 1 */}
+      {hoveredDuration !== null && hoveredTimestamp !== null && hoveredX !== null && (
+        <div
+          className='pointer-events-none absolute top-0 flex items-baseline gap-1.5'
+          style={{
+            left: `clamp(${Y_PAD + 4}px, ${(hoveredX / SVG_W) * 100}%, calc(100% - 8rem))`,
+          }}
+        >
+          <span className='text-4xl font-bold tabular-nums leading-none text-fg'>
+            {lazyFloat(hoveredDuration)}
+          </span>
+          <span className='text-lg font-semibold text-fg/70'>ms</span>
+          <span className='text-sm text-fg/40 ml-0.5'>{formatHoverTime(hoveredTimestamp)}</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -200,7 +205,7 @@ export const StatusItem = memo(function StatusItem({ data }: { data: Status }) {
   const lastResult = data.results[data.results.length - 1]
 
   return (
-    <div className='px-4 py-4 grid gap-1.5'>
+    <div className='px-4 py-2.5 grid gap-1'>
       {/* Title */}
       <div className='flex items-center justify-between'>
         <h3 className='flex items-center gap-1 text-base font-semibold'>

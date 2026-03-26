@@ -15,7 +15,7 @@ export function Header() {
             <img src={logo} className='size-8 rounded-md' alt={siteTitle || ''} />
           </picture>
         ) : (
-          <span className='font-semibold text-sm'>{siteTitle}</span>
+          <span className='font-semibold text-[18px]'>{siteTitle}</span>
         )}
       </Link>
 

@@ -81,21 +81,21 @@ export function StatusList() {
   return (
     <>
       {globalStatus && latestTimestamp ? (
-        <div className='mb-4 flex items-center gap-3 rounded-lg border border-fg/10 px-4 py-3'>
+        <div className='mb-8 flex items-center gap-3 rounded-lg border border-fg/10 px-4 py-3 shadow-sm'>
           {globalStatus.percent === 100 ? (
             <>
               <IconCircleCheckFilled className='size-5 shrink-0 text-emerald-500' />
-              <span className='font-medium'>All systems operational</span>
+              <span className='font-medium text-[18px]'>All systems operational</span>
             </>
           ) : globalStatus.percent === 0 ? (
             <>
               <IconCircleXFilled className='size-5 shrink-0 text-red-500' />
-              <span className='font-medium'>All services are offline</span>
+              <span className='font-medium text-[18px]'>All services are offline</span>
             </>
           ) : (
             <>
               <IconAlertCircleFilled className='size-5 shrink-0 text-amber-500' />
-              <span className='font-medium'>Some services are offline</span>
+              <span className='font-medium text-[18px]'>Some services are offline</span>
             </>
           )}
           <button
@@ -116,8 +116,8 @@ export function StatusList() {
       {resolvedData ? (
         <div className='grid gap-2'>
           {Object.entries(resolvedData).map(([group, statuses]) => (
-            <div key={group} className='overflow-hidden rounded-lg border border-fg/10'>
-              <div className='px-4 pt-3 pb-1 flex items-center justify-between'>
+            <div key={group}>
+              <div className='mb-1 flex items-center justify-between px-1'>
                 <span className='text-xs font-semibold text-fg/50 uppercase tracking-wide'>{group}</span>
                 <span className='text-xs font-semibold uppercase tracking-wide'>
                   {statuses.groupStatus.percent === 100 ? (
@@ -138,7 +138,7 @@ export function StatusList() {
                   )}
                 </span>
               </div>
-              <div className='divide-y divide-fg/5'>
+              <div className='overflow-hidden rounded-lg border border-fg/10 shadow-sm divide-y divide-fg/5'>
                 {statuses.data.map(status => (
                   <StatusItem data={status} key={status.key} />
                 ))}

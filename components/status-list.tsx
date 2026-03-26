@@ -84,17 +84,17 @@ export function StatusList() {
         <div className='mb-8 flex items-center gap-3 rounded-lg border border-fg/10 px-4 py-3 shadow-sm'>
           {globalStatus.percent === 100 ? (
             <>
-              <IconCircleCheckFilled className='size-5 shrink-0 text-emerald-500' />
+              <IconCircleCheckFilled className='size-6 shrink-0 text-emerald-500' />
               <span className='font-medium text-[18px]'>All systems operational</span>
             </>
           ) : globalStatus.percent === 0 ? (
             <>
-              <IconCircleXFilled className='size-5 shrink-0 text-red-500' />
+              <IconCircleXFilled className='size-6 shrink-0 text-red-500' />
               <span className='font-medium text-[18px]'>All services are offline</span>
             </>
           ) : (
             <>
-              <IconAlertCircleFilled className='size-5 shrink-0 text-amber-500' />
+              <IconAlertCircleFilled className='size-6 shrink-0 text-amber-500' />
               <span className='font-medium text-[18px]'>Some services are offline</span>
             </>
           )}

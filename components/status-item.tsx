@@ -29,31 +29,52 @@ function formatHoverTime(ts: number) {
   return `${String(hh).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
+function niceYAxis(durations: number[]) {
+  if (durations.length === 0) return { niceMax: 50, tickStep: 25 }
+
+  const sorted = [...durations].sort((a, b) => a - b)
+  const p95Idx = Math.min(Math.floor(sorted.length * 0.95), sorted.length - 1)
+  const p95 = sorted[p95Idx]
+  const median = sorted[Math.floor(sorted.length / 2)]
+
+  // Use 1.5x P95 as ceiling so normal fluctuations are clearly visible,
+  // but never less than 2x median (avoids flat look on stable services)
+  const candidate = Math.max(p95 * 1.5, median * 2, 10)
+
+  const STEPS = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000]
+  let tickStep = 25
+  for (const s of STEPS) {
+    if (candidate / s <= 6) { tickStep = s; break }
+  }
+  const niceMax = Math.max(Math.ceil(candidate / tickStep) * tickStep, tickStep * 2)
+  return { niceMax, tickStep }
+}
+
 function ResponseTimeChart({ results }: { results: Status['results'] }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
-  const CHART_H = 110
+  const CHART_H = 120
   const SVG_W = 700
-  const Y_PAD = 40  // left space for y-axis labels
+  const Y_PAD = 40
   const PAD_TOP = 14
   const PAD_BOT = 6
   const CHART_W = SVG_W - Y_PAD
-  const X_AXIS_H = 16
+  const X_AXIS_H = 20
   const TOTAL_H = CHART_H + X_AXIS_H
 
   const durations = results.map(r => r.duration / 1_000_000)
   const timestamps = results.map(r => +new Date(r.timestamp))
-  const maxVal = Math.max(...durations)
   const n = durations.length
 
-  // Nice Y-axis max (round up to nearest 50)
-  const niceMax = Math.max(Math.ceil(maxVal / 50) * 50, 50)
-  const tickStep = niceMax <= 100 ? 25 : niceMax <= 300 ? 50 : 100
+  const { niceMax, tickStep } = niceYAxis(durations)
   const yTicks = Array.from({ length: Math.floor(niceMax / tickStep) + 1 }, (_, i) => i * tickStep)
 
   const getX = (i: number) => Y_PAD + (i / Math.max(n - 1, 1)) * CHART_W
-  const getY = (d: number) => PAD_TOP + ((niceMax - d) / niceMax) * (CHART_H - PAD_TOP - PAD_BOT)
+  const getY = (d: number) => {
+    const clamped = Math.min(d, niceMax)
+    return PAD_TOP + ((niceMax - clamped) / niceMax) * (CHART_H - PAD_TOP - PAD_BOT)
+  }
 
   const polylinePoints = durations.map((d, i) => `${getX(i)},${getY(d)}`).join(' ')
   const areaPoints = `${getX(0)},${CHART_H} ${polylinePoints} ${getX(n - 1)},${CHART_H}`
@@ -101,9 +122,9 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
         <text
           x={0} y={CHART_H / 2}
           textAnchor='middle'
-          fontSize='9'
+          fontSize='11'
           fill='currentColor'
-          className='text-fg/40'
+          className='text-fg/70'
           transform={`rotate(-90, 8, ${CHART_H / 2})`}
         >
           Response times(ms)
@@ -117,14 +138,14 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
               <line
                 x1={Y_PAD} y1={y} x2={SVG_W} y2={y}
                 stroke='currentColor' strokeWidth='0.5'
-                className='text-fg/15'
+                className='text-fg/10'
               />
               <text
                 x={Y_PAD - 4} y={y + 3}
                 textAnchor='end'
-                fontSize='9'
+                fontSize='11'
                 fill='currentColor'
-                className='text-fg/40'
+                className='text-fg/70'
               >
                 {Math.round(tick)}
               </text>
@@ -136,7 +157,7 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
         <polygon
           points={areaPoints}
           fill='currentColor'
-          className='text-slate-400/15'
+          className='text-slate-400/10'
         />
 
         {/* Line */}
@@ -145,6 +166,8 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
           fill='none'
           stroke='currentColor'
           strokeWidth='1.5'
+          strokeLinejoin='round'
+          strokeLinecap='round'
           className='text-slate-500'
           vectorEffect='non-scaling-stroke'
         />
@@ -172,16 +195,16 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
             x={item.x}
             y={CHART_H + X_AXIS_H - 2}
             textAnchor={item.anchor as 'start' | 'middle' | 'end'}
-            fontSize='9'
+            fontSize='11'
             fill='currentColor'
-            className='text-fg/40'
+            className='text-fg/70'
           >
             {item.label}
           </text>
         ))}
       </svg>
 
-      {/* HTML hover overlay — large ms display like image 1 */}
+      {/* Hover overlay */}
       {hoveredDuration !== null && hoveredTimestamp !== null && hoveredX !== null && (
         <div
           className='pointer-events-none absolute top-0 flex items-baseline gap-1.5'

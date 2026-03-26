@@ -31,7 +31,7 @@ export function CurrentIncidents() {
 
   return (
     <section
-      className='mt-8 grid transition-all duration-500 ease-out'
+      className='mt-8 mb-6 grid transition-all duration-500 ease-out'
       style={{
         gridTemplateRows: shouldRender ? '1fr' : '0fr',
         opacity: shouldRender ? 1 : 0,

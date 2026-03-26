@@ -41,23 +41,23 @@ export function IncidentItem({ incident, showAllUpdates = false }: IncidentItemP
   return (
     <div
       className={cn(
-        'border rounded-lg p-4 space-y-2 shadow-xs',
+        'border rounded-lg px-4 py-2.5 space-y-1.5 shadow-xs',
         isResolved ? 'border-fg/20' : 'border-rose-500 bg-rose-500/5'
       )}
     >
       <div className='flex items-start justify-between gap-4'>
-        <div className='space-y-1'>
+        <div className='space-y-0.5'>
           <div>
-            <Link href={`/incidents/${incident.id}`} className='text-lg font-semibold hover:underline'>
+            <Link href={`/incidents/${incident.id}`} className='text-base font-semibold hover:underline'>
               {incident.title}
             </Link>
           </div>
-          {incident.description && <p className='text-sm text-fg/60'>{incident.description}</p>}
+          {incident.description && <p className='text-xs text-fg/60'>{incident.description}</p>}
         </div>
       </div>
 
       {updatesToShow.length > 0 && (
-        <div className='space-y-2'>
+        <div className='space-y-1.5'>
           {updatesToShow.map((update, index) => (
             <div key={update.id || index} className='flex items-start gap-3'>
               <div className='min-w-32 flex'>

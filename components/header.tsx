@@ -1,3 +1,4 @@
+import { IconExternalLink } from '@tabler/icons-react'
 import Link from 'next/link'
 
 export function Header() {
@@ -15,7 +16,7 @@ export function Header() {
             <img src={logo} className='size-8 rounded-md' alt={siteTitle || ''} />
           </picture>
         ) : (
-          <span className='font-semibold text-[18px]'>{siteTitle}</span>
+          <span className='font-semibold text-[18px] text-black dark:text-white'>{siteTitle}</span>
         )}
       </Link>
 
@@ -25,9 +26,9 @@ export function Header() {
             href={backUrl}
             target='_blank'
             rel='noopener noreferrer'
-            className='text-fg/60 hover:text-fg text-sm font-medium transition-colors'
+            className='text-black dark:text-white hover:text-fg text-sm font-medium transition-colors'
           >
-            Go to {backTitle || '主页'} ↗
+            Go to {backTitle || '主页'} <IconExternalLink className='inline size-4' />
           </Link>
         ) : null}
       </div>

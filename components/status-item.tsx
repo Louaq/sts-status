@@ -118,18 +118,6 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
         className='w-full block'
         style={{ height: `${TOTAL_H}px` }}
       >
-        {/* Y-axis label */}
-        <text
-          x={0} y={CHART_H / 2}
-          textAnchor='middle'
-          fontSize='11'
-          fill='currentColor'
-          className='text-fg/70'
-          transform={`rotate(-90, 8, ${CHART_H / 2})`}
-        >
-          Response times(ms)
-        </text>
-
         {/* Y-axis gridlines + tick labels */}
         {yTicks.map((tick, i) => {
           const y = getY(tick)
@@ -145,7 +133,7 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
                 textAnchor='end'
                 fontSize='11'
                 fill='currentColor'
-                className='text-fg/70'
+                className='text-black dark:text-white'
               >
                 {Math.round(tick)}
               </text>
@@ -197,7 +185,7 @@ function ResponseTimeChart({ results }: { results: Status['results'] }) {
             textAnchor={item.anchor as 'start' | 'middle' | 'end'}
             fontSize='11'
             fill='currentColor'
-            className='text-fg/70'
+            className='text-black dark:text-white'
           >
             {item.label}
           </text>

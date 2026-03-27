@@ -5,10 +5,14 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 
 import './globals.css'
 
+/** 支持完整 URL（含图床 https://...）；未设置时沿用站点 Logo */
+const faviconUrl =
+  process.env.NEXT_PUBLIC_FAVICON?.trim() || process.env.NEXT_PUBLIC_SITE_LOGO?.trim() || ''
+
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_SITE_TITLE || 'Gatus Frontend',
   description: process.env.NEXT_PUBLIC_SITE_DESC || 'A fully open-source status page with Gatus and Payload',
-  icons: process.env.NEXT_PUBLIC_SITE_LOGO || '',
+  ...(faviconUrl ? { icons: faviconUrl } : {}),
   alternates: {
     types: {
       'application/atom+xml': '/history.atom',
